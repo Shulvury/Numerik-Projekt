@@ -41,26 +41,30 @@ def newton(f, fprime, x0, toleranz, tau_rel, tau_abs, deep):
             break
     if deep > 0:
         for i in range(0, len(sequence_x)-4):
-            # last 3 numbers are almost equal, causing computation of log(0) in error_f and forcing math domain error
+            # last 2 numbers are almost equal, causing computation of log(0) in error_f and forcing math domain error
             sequence_rate.append(error_f(sequence_x[i], sequence_x[i+1], sequence_x[i+2], sequence_x[i+3]))
             sequence_error.append(math.fabs((sequence_x[i+1]-sequence_x[i])))
+
     sequence_error.append(math.fabs((sequence_x[- 2] - sequence_x[- 3])))
     sequence_error.append(math.fabs((sequence_x[- 1] - sequence_x[- 2])))
     # Remaining two slots filled, which now allows plotting
     #
-    #plt.loglog(range(0, len(sequence_error)), sequence_error, 'r--', range(0, len(sequence_rate)), sequence_rate, 'b--')
-    #plt.show()
+    plt.loglog(range(0, len(sequence_error)), sequence_error, 'r--', range(0, len(sequence_rate)), sequence_rate, 'k-')
+    plt.ylabel("Error and convergence rate")
+    plt.xlabel("Index")
+    plt.show()
+    #print(sequence_rate[-1], sequence_error[-2])
     #
     if math.fabs(x_k - x_k_1) < tau_abs * max(1, math.fabs(x_k)) and math.fabs(f(x_k)) < tau_abs:
         #
         #return "Iteration converges at deep ", index, ". The approximated value of x* is ", x_k, " and ", f(x_k), " rate ", sequence_rate[len(sequence_rate)-1]
         if len(sequence_rate) == 0:
-            return list([first_cond, index, x_k, f(x_k), [], sequence_error[-1], True])
-        return list([first_cond, index, x_k, f(x_k), sequence_rate[-1], sequence_error[-1], True])
+            return list([first_cond, index, x_k, f(x_k), [], sequence_error, True])
+        return list([first_cond, index, x_k, f(x_k), sequence_rate, sequence_error, True])
 
     if len(sequence_rate) == 0:
-        return list([first_cond, index, x_k, f(x_k), [], sequence_error[-1], False])
-    return list([first_cond, index, x_k, f(x_k), sequence_rate[-1], sequence_error[-1], False])
+        return list([first_cond, index, x_k, f(x_k), [], sequence_error, False])
+    return list([first_cond, index, x_k, f(x_k), sequence_rate, sequence_error, False])
     #
     #return "Iteration has exceeded maximal depth and hence does not converge. Values are ", x_k, " and ", f(x_k), " rate ", sequence_rate[len(sequence_rate)-1]
 
@@ -152,32 +156,37 @@ def f4_prime(x):    # 1st derivative of f4
 
 # Main
 
-print("Function 4:")
-N_tries = 100
-N_deep = 100001
-values_f1 = np.linspace(0.25, 1, num=N_tries)
+print("Function 3:")
+N_tries = 20
+N_deep = 20
+values_f1 = np.linspace(0, 1, num=N_tries)
 results_f1 = list([])
 tau_relative = 1e-9
 tau_absolut = 1e-9
 count_list = list([])
+#tau_values = np.linspace(0.16, 0.17, num=10, endpoint=True)
+tau_values = list([1])
+for tau_test in tau_values:
+    #print("Tested coefficient for tau is ", tau_test)
+    for j in range(15, 16):
+        for k in range(9, 10):
+            tau_relative = 10**(-k)
+            tau_absolut = 10**(-j)*tau_test
+            #print("Results for rel", j, " and abs ", k)
+            for i in values_f1:
+                print("Staring point: ", i)
+                results_f1.append(newton(f1, f1_prime, i, 1e-15, tau_relative, tau_absolut, N_deep))
+                # first_cond, second_cond, x_k, f(k), rate, error, bool
+            count = 0
+            for i in range(0, N_tries):
+                if results_f1[i][6] == False:
+                    count += 1
+                    #print("Doesnt converge for ", values_f1[i])
+            #print("Results for rel", k, " and abs ", j, "Doesnt converge: ", count)
+            count_list.append(count)
+            results_f1.clear()
 
-#for j in range(1, 20):
-#    for k in range(9, 10):
-#        tau_relative = 10**(-k)
-#        tau_absolut = 10**(-j)
-#        #print("Results for rel", j, " and abs ", k)
-#        for i in values_f1:
-#            results_f1.append(newton(f3, f3_prime, i, 1e-15, tau_relative, tau_absolut, N_deep))
-#            # first_cond, second_cond, x_k, f(k), rate, error, bool
-#        count = 0
-#        for i in range(0, N_tries):
-#            if results_f1[i][6] == False:
-#                count += 1
-#                #print("Doesnt converge for ", values_f1[i])
-#        print("Results for rel", k, " and abs ", j, "Doesnt converge: ", count)
-#        count_list.append(count)
-#        results_f1.clear()
-#plt.plot(range(1, 20), count_list)
+#plt.plot(range(1, 30), count_list)
 #plt.show()
 
 #r = 1.3917452002707349244
@@ -186,16 +195,16 @@ count_list = list([])
 #print(newton(f4, f4_prime, 1.391745200270733, 1e-15, tau_relative, tau_absolut, N_deep+1))
 #print(newton(f4, f4_prime, -.7  , 1e-15, tau_relative, tau_absolut, N_deep))
 
-q = 0.999
-x_0 = 10
-tau_tol = 1e-15
-lambda_tol = 1e-15
-tau_relative = 1e-15
-tau_absolut = 1e-8
-N_deep = 10000
+#q = 0.999
+#x_0 = 10
+#tau_tol = 1e-15
+#lambda_tol = 1e-15
+#tau_relative = 1e-15
+#tau_absolut = 1e-8
+#N_deep = 10000
 
 # f, fprime, x0, q, toleranz, lambda_min, tau_rel, tau_abs, deep
-print(damped_newton(f4, f4_prime, x_0, q, tau_tol, lambda_tol, tau_relative, tau_absolut, N_deep))
+#print(damped_newton(f4, f4_prime, x_0, q, tau_tol, lambda_tol, tau_relative, tau_absolut, N_deep))
 
 
 #print("Function 2: ")
