@@ -49,11 +49,14 @@ def newton(f, fprime, x0, toleranz, tau_rel, tau_abs, deep):
     sequence_error.append(math.fabs((sequence_x[- 1] - sequence_x[- 2])))
     # Remaining two slots filled, which now allows plotting
     #
-    plt.loglog(range(0, len(sequence_error)), sequence_error, 'r--', range(0, len(sequence_rate)), sequence_rate, 'k-')
+    plt.loglog(range(0, len(sequence_error)), sequence_error,  'r--', label="$e_k$")
+    plt.loglog(range(0, len(sequence_rate)), sequence_rate, 'k-', label="$p_k$")
     plt.ylabel("Error and convergence rate")
     plt.xlabel("Index")
+    plt.legend()
     plt.show()
-    #print(sequence_rate[-1], sequence_error[-2])
+    print(sequence_rate[-1], sequence_error[-2])
+    print(index)
     #
     if math.fabs(x_k - x_k_1) < tau_abs * max(1, math.fabs(x_k)) and math.fabs(f(x_k)) < tau_abs:
         #
@@ -158,8 +161,8 @@ def f4_prime(x):    # 1st derivative of f4
 
 print("Function 3:")
 N_tries = 20
-N_deep = 20
-values_f1 = np.linspace(0, 1, num=N_tries)
+N_deep = 200
+values_f1 = np.linspace(0.25, 1, num=N_tries)
 results_f1 = list([])
 tau_relative = 1e-9
 tau_absolut = 1e-9
@@ -168,14 +171,14 @@ count_list = list([])
 tau_values = list([1])
 for tau_test in tau_values:
     #print("Tested coefficient for tau is ", tau_test)
-    for j in range(15, 16):
+    for j in range(14, 15):
         for k in range(9, 10):
             tau_relative = 10**(-k)
             tau_absolut = 10**(-j)*tau_test
             #print("Results for rel", j, " and abs ", k)
             for i in values_f1:
                 print("Staring point: ", i)
-                results_f1.append(newton(f1, f1_prime, i, 1e-15, tau_relative, tau_absolut, N_deep))
+                results_f1.append(newton(f3, f3_prime, i, 1e-15, tau_relative, tau_absolut, N_deep))
                 # first_cond, second_cond, x_k, f(k), rate, error, bool
             count = 0
             for i in range(0, N_tries):
