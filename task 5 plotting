@@ -1,0 +1,239 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import math
+
+
+def error_f(x_0, x_1, x_2, x_3):
+    return math.log(math.fabs( (x_3-x_2)/(1.0*(x_2-x_1))) ) / (1.0 * math.log(math.fabs( (x_2-x_1)/(1.0*(x_1-x_0)))))
+    # error e_k
+
+
+def newton(f, fprime, x0, toleranz, tau_rel, tau_abs, deep):
+    x_k = x0            # x_k
+    x_k_1 = x0           # x_{k-1}
+    index = 0
+
+    while deep > 0:
+        deep -= 1           # iterations left
+        index += 1           # current index
+        x_k_1 = x_k                               # X_k-1 after k-th iteration;
+        x_k = x_k - f(x_k) / (1.0 * fprime(x_k))  # Newton iteration
+        if abs(f(x_k)) < max(tau_abs, tau_rel*abs(f(x0))):         # |f(xk)| < max(t_abs, t_rel*f(x0)|
+            break
+
+    while deep > 0:     # Second phase
+        deep -= 1
+        index += 1
+        x_k_1 = x_k  # X_k-1 after k-th iteration;
+        x_k = x_k - f(x_k) / (1.0 * fprime(x_k))  # Newton iteration
+        if abs(x_k - x_k_1) < tau_abs*max(1, abs(x_k)) and abs(f(x_k)) < tau_abs:
+            # Conditions for convergence
+            break
+
+    return [x0, x_k]
+
+
+
+
+def damped_newton(f, fprime, x0, q, lambda_min, tau_abs, deep):
+    lambda_k = 1
+    x_k = x0  # x_k
+    x_k_1 = x0  # x_{k-1}
+    index = 0
+    depth_of_iteration = 0
+
+    p_k = -1.0*f(x_k)/fprime(x_k)
+    sequence_x = list([])  # Sequence of X_k
+    sequence_x.append(x_k)
+    sequence_rate = list([])  # Sequence of P_k
+    sequence_error = list([])  # Sequence of E_k
+    while deep > 0:
+        #print(math.fabs(x_k - x_k_1), tau_abs*max(1, math.fabs(x_k)), "---", math.fabs(f(x_k)), tau_abs)
+        if math.fabs(x_k - x_k_1) < tau_abs*max(1, math.fabs(x_k)) and math.fabs(f(x_k)) < tau_abs:
+            #print("ha-ha")
+            break
+        x_k_1 = x_k
+        p_k = -1.0 * f(x_k) / fprime(x_k)
+        while math.fabs(f(x_k)) >= math.fabs(f(x_k_1)):
+            if deep == 0:
+                break
+            deep -= 1
+            if lambda_k < lambda_min:
+                return list([index, x_k, f(x_k), [], [], True, depth_of_iteration])
+            x_k = x_k_1 + lambda_k*p_k
+            lambda_k = q * lambda_k
+            depth_of_iteration += 1
+        index += 1
+        lambda_k = min(1, lambda_k/q)
+        sequence_x.append(x_k)
+
+    if deep > 0:
+        for i in range(0, len(sequence_x)-4):
+            # last 3 numbers are almost equal, causing computation of log(0) in error_f and forcing math domain error
+            sequence_rate.append(error_f(sequence_x[i], sequence_x[i+1], sequence_x[i+2], sequence_x[i+3]))
+            sequence_error.append(math.fabs((sequence_x[i+1]-sequence_x[i])))
+    if len(sequence_error) > 3:
+        sequence_error.append(math.fabs((sequence_x[- 2] - sequence_x[- 3])))
+    sequence_error.append(math.fabs((sequence_x[- 1] - sequence_x[- 2])))
+    # Remaining two slots filled, which now allows plotting
+    #
+    plt.loglog(range(0, len(sequence_error)), sequence_error, 'r--', label="$e_k$")
+    plt.loglog(range(0, len(sequence_rate)), sequence_rate, 'k-', label="$p_k$")
+    plt.ylabel("Error and convergence rate")
+    plt.xlabel("Index")
+    plt.legend()
+    plt.show()
+
+    if math.fabs(x_k - x_k_1) < tau_abs * max(1, math.fabs(x_k)) and math.fabs(f(x_k)) < tau_abs:
+        if len(sequence_rate) == 0:
+            return list([index, x_k, f(x_k), [], sequence_error[-1], True])
+        return list([index, x_k, f(x_k), sequence_rate[-1], sequence_error[-1], True])
+        #print(depth_of_iteration, index)
+        #return list([index, x_k, f(x_k), [], [], True, depth_of_iteration])
+
+    if len(sequence_rate) == 0:
+        return list([index, x_k, f(x_k), [], sequence_error[-1], False])
+    print(depth_of_iteration, index)
+    return list([index, x_k, f(x_k), [], [], False])
+
+
+def f1(x):      # x^2 + exp(x) - 2 in [0,1]
+    return x**2 + math.exp(x) - 2
+
+
+def f2(x):      # log(x) + x^2 in [0.25, 1]
+    return math.log(x) + x**2
+
+
+def f3(x):      # cos^2(2x) - x^2 in [0.25, 1]
+    return (math.cos(2*x)) - x**2
+
+
+def f4(x):      # arctg(x)
+    return math.atan(x)
+
+
+def f5(z):      # z^3 + 1
+    return z**3 + 1
+
+
+def f1_prime(x):    # 1st derivative of f1
+    return 2*x + math.exp(x)
+
+
+def f2_prime(x):    # 1st derivative of f2
+    return x**(-1) + 2*x
+
+
+def f3_prime(x):    # 1st derivative of f3
+    return -2*math.sin(4*x) - 2*x
+
+
+def f4_prime(x):    # 1st derivative of f4
+    return (1 + x**2)**(-1)
+
+
+def f5_prime(z):    # 1st derivative of f5
+    return 3*(z**2)
+
+
+# Main
+
+print("Function 3:")
+N_tries = 50
+N_deep = 200
+real_part = np.linspace(-1, 1, num=N_tries, endpoint=True)
+imaginary_part = np.linspace(-1, 1, num=N_tries, endpoint=True)
+print(len(imaginary_part))
+values_f1 = list([])
+for i in range(0, N_tries):
+    for j in range(0, N_tries):
+        z = complex(real_part[i], imaginary_part[j])
+        values_f1.append(z)
+
+results_f1 = list([])
+tau_relative = 1e-9
+tau_absolut = 1e-14
+count_list = list([])
+#print("Results for rel", j, " and abs ", k)
+for i in values_f1:
+    results_f1.append(newton(f5, f5_prime, i, 1e-15, tau_relative, tau_absolut, N_deep))
+    # staring point, convergence point
+
+
+start_x = list([])
+start_y = list([])
+end_x = list([])
+end_y = list([])
+for i in range(0, N_tries**2):
+    start_x.append(results_f1[i][0].real)
+    start_y.append(results_f1[i][0].imag)
+    end_x.append(results_f1[i][1].real - results_f1[i][0].real)
+    end_y.append(results_f1[i][1].imag - results_f1[i][0].imag)
+
+#color = np.sqrt(((np.array(end_x)-2)/2)*2 + ((np.array(end_y)-2)/2)*2)
+
+plt.quiver(start_x, start_y, end_x, end_y)
+plt.show()
+
+#plt.plot(range(1, 30), count_list)
+#plt.show()
+
+
+# task 3
+
+#r = 1.3917452002707349244
+#values_task_3 = np.linspace(1.3975, 200, 100)
+#for i in values_task_3:
+#print(damped_newton(f4, f4_prime, 2, 1e-1, 10e-14, 10e-14, 100000))
+#    print(newton(f4, f4_prime, -.7  , 1e-15, tau_relative, tau_absolut, N_deep))
+
+
+#task 4
+
+#x_0 = 10
+#tau_tol = 1e-15
+#lambda_minimal = 1e-15
+#tau_relative = 1e-15
+#tau_absolut = 1e-8
+#N_deep = 100000
+#q_values = np.linspace(0.001, 0.01, num=10)
+#q_values = list([0.95])
+
+#N_tries = 10
+#values_f1 = np.linspace(1.3917452002707349244, 1000, num=N_tries, endpoint=True)
+#results_f1 = list([])
+#count_list = list([])
+
+#  f, fprime, x0, q, toleranz, lambda_min, tau_rel, tau_abs, deep
+#print(damped_newton(f4, f4_prime, x_0, q, tau_tol, lambda_tol, tau_relative, tau_absolut, N_deep))
+
+#for q_test in q_values:
+#    #print("Tested coefficient for tau is ", tau_test)
+#    tau_relative = 10**(-9)
+#    tau_absolut = 10**(-14)
+#
+#    for i in values_f1:
+#        print("Staring point: ", i)
+#        #  f, fprime, x0, q, toleranz, lambda_min, tau_rel, tau_abs, deep
+#        results_f1.append(damped_newton(f4, f4_prime, i, q_test, lambda_minimal, tau_absolut, N_deep))
+#        # first_cond, second_cond, x_k, f(k), rate, error, bool
+#    count = 0
+#    for i in range(0, N_tries):
+#        # index, x_k, f(x_k), sequence_rate[-1], sequence_error[-1], bool
+#        if results_f1[i][5] == False:
+#            count += 1
+#
+#    print("Doesnt converge for q =", q_test, " : ", count)
+#    #print("Results for rel", k, " and abs ", j, "Doesnt converge: ", count)
+#    #   count_list.append(count)
+#    results_f1.clear()
+
+
+
+#print("Function 2: ")
+#print(newton(f2, f2_prime, 0.25, 1e-15, 1e-9, 1e-15, 1000))
+
+#print("Function 3: ")
+#print(newton(f3, f3_prime, 0.51, 1e-15, 1e-9, 1e-15, 1000))
+
